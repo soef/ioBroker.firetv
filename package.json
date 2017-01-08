@@ -1,0 +1,44 @@
+{
+  "name": "iobroker.firetv",
+  "version": "0.0.3",
+  "description": "ioBroker Fire-TV Adapter",
+  "author": {
+    "name": "soef",
+    "email": "soef@gmx.net"
+  },
+  "contributors": [
+    {
+      "name": "soef",
+      "email": "soef@gmx.net"
+    }
+  ],
+  "homepage": "https://github.com/soef/iobroker.firetv",
+  "license": "MIT",
+  "keywords": [
+    "fire-tv",
+    "firetv",
+    "fire tv stick",
+    "amazon"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/soef/iobroker.firetv"
+  },
+  "dependencies": {
+    "adbkit": "^2.7.0",
+    "mdns-discovery": "^0.1.6",
+    "soef": "^0.1.29"
+  },
+  "devDependencies": {
+    "mocha": "^2.3.4",
+    "chai": "^3.4.1"
+  },
+  "main": "firetv.js",
+  "scripts": {
+    "test": "node node_modules/mocha/bin/mocha"
+  },
+  "bugs": {
+    "url": "https://github.com/soef/iobroker.firetv/issues"
+  },
+  "readmeFilename": "README.md"
+}

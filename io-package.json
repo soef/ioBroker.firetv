@@ -1,0 +1,28 @@
+{
+  "common": {
+    "name": "firetv",
+    "version": "0.0.3",
+    "title": "Fire TV",
+    "desc": "Amazon Fire TV",
+    "platform": "Javascript/Node.js",
+    "keywords": [
+      "firetv",
+      "fire tv",
+      "fire-tv",
+	  "amazon fire tv"
+    ],
+    "mode": "daemon",
+    "icon": "firetv.png",
+    "extIcon": "https://raw.githubusercontent.com/soef/iobroker.firetv/master/admin/firetv.png",
+    "readme":  "https://github.com/soef/iobroker.firetv/blob/master/README.md",
+    "loglevel": "info",
+    "type": "hardware",
+    "enabled": true,
+    "messagebox": true
+  },
+  "native": {
+    "devices": []
+  },
+    "objects": [
+    ]
+}
