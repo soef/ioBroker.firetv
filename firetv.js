@@ -81,8 +81,11 @@ function onMessage (obj) {
             });
             mdns.run (function(res) {
                 if (obj.callback) {
-                    res.forEach(function(v) {
-                        v.enabled = true;
+                    res.forEach(function(v, i) {
+                        if (adapter.config.devices.contains('ip', v))
+                            res.splice(i, 1);
+                        else
+                            v.enabled = true;
                     });
                     adapter.sendTo (obj.from, obj.command, JSON.stringify(res), obj.callback);
                 }
@@ -323,7 +326,7 @@ function startFire(cb) {
     function doIt() {
         if (i >= adapter.config.devices.length) return cb && cb();
         var device = adapter.config.devices[i++];
-        if (dev.enabled) {
+        if (device.enabled) {
             var firetv = new FireTV(device);
             firetv.create(doIt);
         }
