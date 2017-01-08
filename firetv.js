@@ -70,6 +70,7 @@ function onStateChange(id, state) {
     }
 }
 
+
 function onMessage (obj) {
     if (!obj) return;
     switch (obj.command) {
@@ -79,13 +80,10 @@ function onMessage (obj) {
                 name: '_amzn-wplay._tcp.local',
                 find: 'amzn.dmgr:'
             });
-            mdns.run (function(res) {
+            mdns.setFilter('ip', adapter.config.devices).run (function(res) {
                 if (obj.callback) {
-                    res.forEach(function(v, i) {
-                        if (adapter.config.devices.contains('ip', v))
-                            res.splice(i, 1);
-                        else
-                            v.enabled = true;
+                    res.forEach(function(v) {
+                        v.enabled = true;
                     });
                     adapter.sendTo (obj.from, obj.command, JSON.stringify(res), obj.callback);
                 }
@@ -98,6 +96,7 @@ function onMessage (obj) {
     if (obj.callback) adapter.sendTo (obj.from, obj.command, obj.message, obj.callback);
     return true;
 }
+
 
 function onUnload(callback) {
     Object.keys(fireTVs).forEach(function(v) {
