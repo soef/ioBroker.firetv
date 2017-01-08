@@ -61,7 +61,6 @@ prepareStates();
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function onStateChange(id, state) {
-    //var ar = id.split('.');
     var dcs = adapter.idToDCS(id);
     var ftv = fireTVs[dcs.device];
     if (ftv) {
@@ -81,7 +80,6 @@ function onMessage (obj) {
                 find: 'amzn.dmgr:'
             });
             mdns.run (function(res) {
-                
                 if (obj.callback) {
                     res.forEach(function(v) {
                         v.enabled = true;
@@ -139,8 +137,8 @@ function trackDevices() {
         })
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 var FireTV = function (entry) {
     this.dev = new devices.CDevice(entry.ip, entry.name);
@@ -207,7 +205,6 @@ FireTV.prototype.shell = function (command, cb) {
         this.handleCallback(err, stream, cb);
     }.bind(this));
 };
-
 
 
 FireTV.prototype.onStateChange = function (channel, state, val) {
@@ -325,8 +322,11 @@ function startFire(cb) {
     var i = 0;
     function doIt() {
         if (i >= adapter.config.devices.length) return cb && cb();
-        var firetv = new FireTV(adapter.config.devices[i++]);
-        firetv.create(doIt);
+        var device = adapter.config.devices[i++];
+        if (dev.enabled) {
+            var firetv = new FireTV(device);
+            firetv.create(doIt);
+        }
     };
     doIt();
 }
