@@ -3,7 +3,7 @@
 ### ioBroker.firetv 
 
 [![NPM version](http://img.shields.io/npm/v/iobroker.firetv.svg)](https://www.npmjs.com/package/iobroker.firetv)
-[![Tests](http://img.shields.io/travis/soef/ioBroker.firetv/master.svg)](https://travis-ci.org/soef/ioBroker.firetv)
+[![Tests](http://img.shields.io/travis/soef/iobroker.firetv/master.svg)](https://travis-ci.org/soef/iobroker.firetv)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](https://github.com/soef/iobroker.firetv/blob/master/LICENSE)
 
 
@@ -15,7 +15,6 @@ You can install the complete Android SDK or a minimal version of adb. Search at 
 
 - *Minimal ADB and Fastboot* or
 - *adbLink* 
-
 
 #### Installation
 Execute the following command in the iobroker root directory (e.g. in /opt/iobroker)
