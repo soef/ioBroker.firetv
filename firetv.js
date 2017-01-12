@@ -2,11 +2,11 @@
 
 var soef = require('soef'),
     adb = require('adbkit'),
+    path = require('path'),
     Client = require('./node_modules/adbkit/lib/adb/client'),
     Mdns = require('mdns-discovery');
 
 soef.extendAll();
-
 
 //Client.prototype.parent = { shell: Client.prototype.shell };
 Client.prototype.shellEx = function(id, command, cb) {
@@ -58,6 +58,9 @@ Client.prototype.getIP = function(id, cb) {
 
 var fireTVs = {};
 var g_client;
+var isWin = process.platform === 'win32';
+
+
 
 var knownAppPathes = {
     kodi: 'org.xbmc.kodi/.Splash',
@@ -162,7 +165,7 @@ function onUnload(callback) {
 }
 
 function new_g_client() {
-    if (g_client) reurn;
+    if (g_client) return;
     g_client = adb.createClient({bin: adapter.config.adbPath});
 }
 
@@ -428,23 +431,52 @@ function existFile(fn) {
     return false;
 }
 
-function normalizeConfig() {
-    if (adapter.config.adbPath) {
-        if (!existFile(adapter.config.adbPath) && !existFile(adapter.config.adbPath + '.exe')) {
-            adapter.config.adbPath += '/adb';
-            adapter.config.adbPath = adapter.config.adbPath.replace(/\\/g, '/');
-            adapter.config.adbPath = adapter.config.adbPath.replace(/\/\//g, '/');
-            if (!existFile(adapter.config.adbPath) && !existFile(adapter.config.adbPath + '.exe')) {
-                adapter.log.error('adb executable not found. ' + adapter.config.adbPath);
+function checkPATH() {
+    var fn, ar = process.env.PATH.split(path.delimiter);
+    var exe = isWin ? 'adb.exe' : 'adb';
+    ar.find(function(v) {
+        if (v.toLowerCase().indexOf('adb') >= 0) {
+            var _fn = path.join(v, exe);
+            if (existFile(_fn)) {
+                fn = _fn;
+                return true;
             }
         }
-    } else {
-        adapter.config.adbPath = 'adb';
+        return false;
+    });
+    return fn;
+}
+
+var defaultMinimalABAndFastboot = 'C:/Program Files (x86)/Minimal ADB and Fastboot/adb.exe';
+function normalizeConfig() {
+    var oldAdbPath = adapter.config.adbPath;
+    if (!existFile(adapter.config.adbPath)) {
+        if (isWin && adapter.config.adbPath && existFile(adapter.config.adbPath + '.exe')) {
+            adapter.config.adbPath += '.exe';
+        } else {
+            var p = adapter.config.adbPath + '/adb';
+            p = p.replace(/\\/g, '/').replace(/\/\//g, '/');
+            if (!isWin && existFile(p)) {
+                adapter.config.adbPath = p;
+            } else if (isWin && existFile(p + '.exe')) {
+                adapter.config.adbPath = p + '.exe';
+            } else if (isWin && existFile(defaultMinimalABAndFastboot)) {
+                adapter.config.adbPath = defaultMinimalABAndFastboot;
+            } else {
+                adapter.config.adbPath = checkPATH();
+                if (!adapter.config.adbPath) {
+                    adapter.log.error('adb executable not found. ' + adapter.config.adbPath);
+                    adapter.config.adbPath = 'adb'
+                }
+            }
+        }
+        adapter.config.adbPath = path.normalize(adapter.config.adbPath);
     }
-    if (adapter.config.devices.unique('ip')) {
-        changeAdapterConfig(adapter, function(config) {
+    if (oldAdbPath !== adapter.config.adbPath || adapter.config.devices.unique('ip')) {
+        soef.changeAdapterConfig(adapter, function(config) {
             config.devices = adapter.config.devices;
-        })
+            config.adbPath = adapter.config.adbPath;
+        });
     }
  }
  
@@ -469,7 +501,7 @@ function prepareDevices(cb) {
     var re = /^\d*\.\d*\.\d*\.\d*:\d*$/;
     //var client = adb.createClient({bin: adapter.config.adbPath});
     //var client = new Client({bin: adapter.config.adbPath});
-    new_g_clien();
+    new_g_client();
     g_client.listDevices(function (err, devices) {
         if (err || !devices) return cb && cb(err);
         devices.forEach(function (device) {
