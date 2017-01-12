@@ -2,9 +2,57 @@
 
 var soef = require('soef'),
     adb = require('adbkit'),
+    Client = require('./node_modules/adbkit/lib/adb/client'),
     Mdns = require('mdns-discovery');
 
 soef.extendAll();
+
+
+//Client.prototype.parent = { shell: Client.prototype.shell };
+Client.prototype.shellEx = function(id, command, cb) {
+    //this.parent.shell.call( this, id, command, function (err, stream) {
+    this.shell(id, command, function (err, stream) {
+        if (err || !stream) return cb & cb(err, 0);
+        adb.util.readAll(stream, function (err, output) {
+            if (err || !stream) return cb && cb(err);
+            var ar = output.toString().split('\r\n');
+            ar.length--;
+            cb && cb(0, ar);
+        });
+    })
+};
+
+Client.prototype.shell1 = function (id, command, cb) {
+    return this.shellEx(id, command, function (err, ar) {
+        cb && cb(err, (ar && ar.length) ? ar[0] : '');
+    });
+};
+
+Client.prototype.getIP = function(id, cb) {
+    var self = this;
+    this.getProperties(id, function (err, properties) {
+        if (!err && properties) {
+            var ip = soef.getProp(properties, "dhcp.eth0.ipaddress");
+            ip = ip || soef.getProp(properties, "dhcp.wlan0.ipaddress");
+            if (ip) return cb && cb(0, ip);
+        }
+        self.shellEx(id, "ifconfig wlan0", function (err, ar) {
+            if (err || !ar) return cb && cb('');
+            ar.forEach(function (line) {
+                var a = line.trim().split('  ');
+                if (a && a.length) {
+                    a = a[0].split(':');
+                    if (a && a.length && a[0] === 'inet addr') {
+                        ip = a [1];
+                        if (ip) return cb && cb(ip);
+                    }
+                }
+            });
+            cb && cb('');
+        });
+    });
+};
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -21,9 +69,10 @@ var adapter = soef.Adapter (
     onStateChange,
     onUnload,
     onMessage,
-    {
-        name: 'firetv',
-    }
+    // {
+    //     name: 'firetv'
+    // }
+    'firetv'
 );
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -37,6 +86,7 @@ var usedStateNames = {
     screencap:   { n: 'screencap',   val: false, common: { min: false, max: true}},
     result:      { n: 'result',      val: '',    common: { write: false }},
     swapPower:   { n: 'swapPower',   val: false, common: { min: false, max: true}},
+    on:          { n: 'on',          val: false, common: { min: false, max: true}},
     
     enter:       { n: 'keys.enter',  val: false, common: { min: false, max: true, code: adb.Keycode.KEYCODE_ENTER }},
     left:        { n: 'keys.left',   val: false, common: { min: false, max: true, code: adb.Keycode.KEYCODE_DPAD_LEFT}},
@@ -98,15 +148,23 @@ function onMessage (obj) {
 }
 
 
-function onUnload(callback) {
+function closeAllFireTVs() {
     Object.keys(fireTVs).forEach(function(v) {
         fireTVs[v].close();
         delete fireTVs[v];
     });
+}
+
+function onUnload(callback) {
+    closeAllFireTVs();
     g_client.close();
     callback && callback();
 }
 
+function new_g_client() {
+    if (g_client) reurn;
+    g_client = adb.createClient({bin: adapter.config.adbPath});
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -114,12 +172,10 @@ function trackDevices() {
     
     function set(device, val) {
         var ar = device.id.split(':');
-        var ftv = fireTVs[ar[0]];
+        var ftv = fireTVs[normalizedName(ar[0])];
         if (ftv) ftv.setOnline(val);
     }
-    
-    g_client = adb.createClient({bin: adapter.config.adbPath});
-    
+    new_g_client();
     g_client.trackDevices()
         .then(function (tracker) {
             tracker.on('add', function (device) {
@@ -145,39 +201,44 @@ function trackDevices() {
 var FireTV = function (entry) {
     this.dev = new devices.CDevice(entry.ip, entry.name);
     this.id = entry.ip;
+    adapter.log.debug("FireTV: " + entry.ip);
     var d = this.dev.getFullId('');
     fireTVs [d] = this;
 };
 
 
 FireTV.prototype.startClient = function(cb) {
+    var self = this;
     this.client = adb.createClient({ bin: adapter.config.adbPath });
-    this.client.connect(this.id, 5555, function(err,d) {
-        this.client.id = d;
-        this.client.version(function(err, version) {
-            adapter.log.info("adb version is " + version);
+    this.client.connect(this.id, 5555, function(err,id) {
+        if (err || !id) {
+            adapter.log.error('can not connect to ' + self.id + ' Error=' + err.message)
+            return;
+        } else {
+            adapter.log.debug('Connected to ' + self.id + ' id=' + id);
+        }
+    
+        // self.client.getProperties(self.id, function(err, properties) {
+        // });
+        
+        self.client.id = id;
+        self.client.version(function(err, version) {
+            self.getAndroidVersion(function(androidVersion) {
+                self.getAPILevel(function (apiLevel) {
+                    //adapter.log.info(self.id + ": ADB version: " + version + ', Android Version: ' + androidVersion + ', API Level: ' + apiLevel);
+                    soef.log("%s: ADB version: %s, Android Version: %s, API Level: %s", self.id, version, androidVersion, apiLevel);
+                });
+            });
         });
-        // this.client.getDevicePath(d, function(err, path) {
-        // });
-        // this.client.getFeatures(d, function(err, features) {
-        // });
-        cb && cb();
-    }.bind(this));
+        self.getPowerState(function(on) {
+            self.dev.setImmediately(usedStateNames.on.n, on);
+        });
+    });
+    cb && cb();
 };
 
-FireTV.prototype.close = function() {
-     if (this.client) {
-         this.client.disconnect(this.client.id);
-         this.client = undefined;
-     }
-};
 
-FireTV.prototype.setOnline = function (online) {
-    this.dev.setImmediately(usedStateNames.online.n, online ? true : false);
-};
-
-FireTV.prototype.create = function (cb) {
-    this.dev.setDevice(this.id, {common: {name: this.id, role: 'device'}, native: { } });
+FireTV.prototype.createStates = function (cb) {
     for (var j in usedStateNames) {
         var st = Object.assign({}, usedStateNames[j]);
         this.dev.createNew(st.n, st);
@@ -188,16 +249,50 @@ FireTV.prototype.create = function (cb) {
 };
 
 
+FireTV.prototype.close = function() {
+     if (this.client) {
+         this.client.disconnect(this.client.id);
+         this.client = undefined;
+     }
+};
+
+
+FireTV.prototype.shell1 /*Line*/ = function (cmd, cb) {
+    this.shell (cmd, function(ar) {
+        if (ar && ar.length) return cb && cb(ar[0]);
+        cb && cb('');
+    })
+};
+
+FireTV.prototype.getAndroidVersion = function (cb) {
+    return this.shell1('getprop ro.build.version.release', cb);
+};
+
+FireTV.prototype.getAPILevel = function (cb) {
+    return this.shell1('getprop ro.build.version.sdk', cb);
+};
+
+FireTV.prototype.setOnline = function (online) {
+    this.dev.setImmediately(usedStateNames.online.n, online ? true : false);
+};
+
+
 FireTV.prototype.handleCallback = function (err, stream, cb) {
-    if (err || !stream) return cb && cb();
+    if (err || !stream) {
+        adapter.log.error('ID: ' + this.id + ' Error=' + err.message)
+        if (err && err.message) this.dev.setImmediately(err.message);
+        return cb && cb();
+    }
     var self = this;
     adb.util.readAll(stream, function(err, output) {
-        var ar = output.toString().split('\r\n');
-        ar.length--;
-        ar.forEach(function(line) {
-            adapter.log.debug(line);
-            self.dev.setImmediately('result', line);
-        });
+        if (!err && output) {
+            var ar = output.toString().split('\r\n');
+            ar.length--;
+            if (ar.length < 10) ar.forEach(function (line) {
+                adapter.log.debug(line);
+                self.dev.setImmediately('result', line);
+            });
+        }
         if (cb) cb (ar);
     });
 };
@@ -206,6 +301,42 @@ FireTV.prototype.shell = function (command, cb) {
     this.client.shell(this.client.id, command, function(err, stream) {
         this.handleCallback(err, stream, cb);
     }.bind(this));
+};
+
+
+function lines2Object(lines) {
+    var o = {};
+    if (!lines) return o;
+    if (typeof lines === 'string') lines = lines.split('\r\n');
+    lines.forEach(function(line) {
+        line = line.trim().replace(/ |:/g, '_');
+        var ar = line.split('=');
+         if (ar && ar.length >= 2) {
+             o [ar[0]] = valtype(ar[1]);
+         }
+    });
+    return o;
+}
+
+FireTV.prototype.getPowerState = function (cb) {
+    this.shell('dumpsys power', function (ar) {
+    //this.shell('dumpsys input_method', function (ar) {
+        // var value = ar.join('\r');
+        // var RE_KEYVAL = /^\s*(\S*)=(\S)\r?$/gm;
+        // var properties = {};
+        // var match;
+        // value = value.substr(52);
+        // while (match = RE_KEYVAL.exec(value)) {
+        //     properties[match[1]] = match[2];
+        // }
+
+        var power = lines2Object(ar);
+        var on = power.Display_Power__state;
+        //var i = power.mScreenOn;
+        // power.mSystemReady
+        // power.mDisplayReady;
+        cb && cb(on === 'ON');
+    });
 };
 
 
@@ -238,34 +369,22 @@ FireTV.prototype.onStateChange = function (channel, state, val) {
         case usedStateNames.screencap.n:
             this.client.screencap(this.client.id, this.handleCallback.bind(this));
             break;
-        case usedStated.swapPower.n:
+        case usedStateNames.swapPower.n:
             this.shell("input keyevent " + adb.Keycode.KEYCODE_POWER);
             return true;
+        case 'power':
+        case usedStateNames.on.n:
+            this.getPowerState(function(on) {
+                if (val != on) this.shell("input keyevent " + adb.Keycode.KEYCODE_POWER);
+            }.bind(this));
+            break;
     }
 };
 
-// function start(app, activity) {
-//     if (!activity) activity = 'MainActivity';
-//     client.shell(client.d, 'am start -n ' + app + '/.' + activity, function(err, r) {
-//     });
-// }
-//
-//
-// function startKodi() {
-//     start('org.xbmc.kodi', 'Splash');
-// }
-// function stop(app) {
-//     client.shell(d, 'am force-stop ' + app);
-// }
-// function stopKodi() {
-//     client.shell(d, 'am force-stop org.xbmc.kodi');
-// }
-// function startNetflix() {
-//     start ('com.netflix.ninja');
-// }
 
 function checkIP(cb) {
-    if (adapter.config.devices.length) return cb && cb();
+    if (adapter.config.devices.length) cb && cb();
+    cb = undefined;
     var mdns = Mdns({
         timeout: 4,
         //returnOnFirstFound: true,
@@ -273,6 +392,8 @@ function checkIP(cb) {
         find: 'amzn.dmgr:'
     });
     mdns.run (function(res) {
+        res.removeDup('ip', adapter.config.devices);
+        if (!res.length) return cb && cb();
         soef.changeAdapterConfig(adapter, function(config){
             res.forEach(function(dev) {
                 if (!config.devices.find(function(v) {
@@ -285,13 +406,21 @@ function checkIP(cb) {
                     })
                 }
             });
+            if (config.devices.length !== adapter.config.devices.length) {
+                adapter.config.devices = config.devices;
+                if (cb === undefined) {
+                   closeAllFireTVs();
+                   startFireTVs();
+                }
+            }
         }, cb );
     });
 }
 
+var fs;
 function existFile(fn) {
     try {
-        var fs = require('fs');
+        fs = fs || require('fs');
         var stats = fs.lstatSync(fn);
         return stats.isFile();
     } catch(e) {
@@ -316,36 +445,60 @@ function normalizeConfig() {
         changeAdapterConfig(adapter, function(config) {
             config.devices = adapter.config.devices;
         })
-    };
+    }
  }
  
  
-function startFire(cb) {
+function startFireTVs(cb) {
     var i = 0;
     function doIt() {
         if (i >= adapter.config.devices.length) return cb && cb();
         var device = adapter.config.devices[i++];
         if (device.enabled) {
             var firetv = new FireTV(device);
-            firetv.create(doIt);
+            firetv.createStates(doIt);
+        } else {
+            doIt();
         }
-    };
+    }
     doIt();
 }
 
 
+function prepareDevices(cb) {
+    var re = /^\d*\.\d*\.\d*\.\d*:\d*$/;
+    //var client = adb.createClient({bin: adapter.config.adbPath});
+    //var client = new Client({bin: adapter.config.adbPath});
+    new_g_clien();
+    g_client.listDevices(function (err, devices) {
+        if (err || !devices) return cb && cb(err);
+        devices.forEach(function (device) {
+            if (!re.test(device.id)) g_client.tcpip(device.id, function (err, port) {
+                if (err || !port) return cb && cb(err);
+                g_client.waitForDevice(device.id, function(err, data) {
+                    g_client.getIP(device.id, function(ip) {
+                        if (ip) g_client.connect(ip, port, function(err,data) {
+                            cb && cb(err);
+                        });
+                    });
+                });
+            });
+        })
+    })
+}
+
 function main() {
     
-    //adapter.config.adbPath = "C:\\Automation\\bin\\minimalADB\\adb";
-    //adapter.config.adbPath = 'c:\\Automation\\bin\\adbLink\\adb';
     normalizeConfig();
-    checkIP (
-        startFire (function () {
-           trackDevices();
+    prepareDevices();
+    
+    checkIP (function () {
+        startFireTVs (function () {
+            trackDevices();
         })
-    );
+    });
     
     adapter.subscribeStates('*');
-    adapter.subscribeObjects('*');
+    //adapter.subscribeObjects('*');
 }
 
