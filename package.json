@@ -1,6 +1,6 @@
 {
   "name": "iobroker.firetv",
-  "version": "0.0.8",
+  "version": "0.0.10",
   "description": "ioBroker Fire-TV Adapter",
   "author": {
     "name": "soef",
@@ -28,7 +28,7 @@
     "adbkit": "^2.7.0",
     "bluebird": "^3.4.7",
     "mdns-discovery": "^0.1.9",
-    "soef": "^0.1.30"
+    "soef": "^0.1.37"
   },
   "devDependencies": {
     "mocha": "^2.3.4",
