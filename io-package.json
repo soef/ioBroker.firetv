@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "firetv",
-    "version": "0.0.14",
+    "version": "0.0.15",
     "title": "Fire TV",
     "desc": "Amazon Fire TV",
     "platform": "Javascript/Node.js",
