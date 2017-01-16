@@ -60,8 +60,6 @@ var fireTVs = {};
 var g_client;
 var isWin = process.platform === 'win32';
 
-
-
 var knownAppPathes = {
     kodi: 'org.xbmc.kodi/.Splash',
     netflix: 'com.netflix.ninja'
@@ -72,9 +70,6 @@ var adapter = soef.Adapter (
     onStateChange,
     onUnload,
     onMessage,
-    // {
-    //     name: 'firetv'
-    // }
     'firetv'
 );
 
@@ -152,10 +147,10 @@ function onMessage (obj) {
 
 
 function closeAllFireTVs() {
-    Object.keys(fireTVs).forEach(function(v) {
-        fireTVs[v].close();
-        delete fireTVs[v];
-    });
+    for (var i in fireTVs) {
+        fireTVs[i].close();
+        delete fireTVs[i];
+    };
 }
 
 function onUnload(callback) {
@@ -194,7 +189,7 @@ function trackDevices() {
             });
         })
         .catch(function (err) {
-            adapter.log.debug('Something went wrong:' + err.stack)
+            adapter.log.debug('Something went wrong:' + err.message)
         })
 }
 
@@ -253,10 +248,12 @@ FireTV.prototype.createStates = function (cb) {
 
 
 FireTV.prototype.close = function() {
-     if (this.client) {
-         this.client.disconnect(this.client.id);
-         this.client = undefined;
-     }
+    if (this.client && this.client.id) {
+        this.client.disconnect(this.client.id).catch(function (err) {
+            adapter.log.debug('Something went wrong:' + err.message)
+        });
+        this.client = undefined;
+    }
 };
 
 
@@ -420,16 +417,16 @@ function checkIP(cb) {
     });
 }
 
-var fs;
-function existFile(fn) {
-    try {
-        fs = fs || require('fs');
-        var stats = fs.lstatSync(fn);
-        return stats.isFile();
-    } catch(e) {
-    }
-    return false;
-}
+// var fs;
+// function existFile(fn) {
+//     try {
+//         fs = fs || require('fs');
+//         var stats = fs.lstatSync(fn);
+//         return stats.isFile();
+//     } catch(e) {
+//     }
+//     return false;
+// }
 
 function checkPATH() {
     var fn, ar = process.env.PATH.split(path.delimiter);
@@ -437,7 +434,7 @@ function checkPATH() {
     ar.find(function(v) {
         if (v.toLowerCase().indexOf('adb') >= 0) {
             var _fn = path.join(v, exe);
-            if (existFile(_fn)) {
+            if (soef.existFile(_fn)) {
                 fn = _fn;
                 return true;
             }
@@ -450,17 +447,17 @@ function checkPATH() {
 var defaultMinimalABAndFastboot = 'C:/Program Files (x86)/Minimal ADB and Fastboot/adb.exe';
 function normalizeConfig() {
     var oldAdbPath = adapter.config.adbPath;
-    if (!existFile(adapter.config.adbPath)) {
-        if (isWin && adapter.config.adbPath && existFile(adapter.config.adbPath + '.exe')) {
+    if (!soef.existFile(adapter.config.adbPath)) {
+        if (isWin && adapter.config.adbPath && soef.existFile(adapter.config.adbPath + '.exe')) {
             adapter.config.adbPath += '.exe';
         } else {
             var p = adapter.config.adbPath + '/adb';
             p = p.replace(/\\/g, '/').replace(/\/\//g, '/');
-            if (!isWin && existFile(p)) {
+            if (!isWin && soef.existFile(p)) {
                 adapter.config.adbPath = p;
-            } else if (isWin && existFile(p + '.exe')) {
+            } else if (isWin && soef.existFile(p + '.exe')) {
                 adapter.config.adbPath = p + '.exe';
-            } else if (isWin && existFile(defaultMinimalABAndFastboot)) {
+            } else if (isWin && soef.existFile(defaultMinimalABAndFastboot)) {
                 adapter.config.adbPath = defaultMinimalABAndFastboot;
             } else {
                 adapter.config.adbPath = checkPATH();
@@ -499,8 +496,6 @@ function startFireTVs(cb) {
 
 function prepareDevices(cb) {
     var re = /^\d*\.\d*\.\d*\.\d*:\d*$/;
-    //var client = adb.createClient({bin: adapter.config.adbPath});
-    //var client = new Client({bin: adapter.config.adbPath});
     new_g_client();
     g_client.listDevices(function (err, devices) {
         if (err || !devices) return cb && cb(err);
@@ -519,13 +514,16 @@ function prepareDevices(cb) {
     })
 }
 
+
 function main() {
+    
     
     normalizeConfig();
     prepareDevices();
     
-    checkIP (function () {
-        startFireTVs (function () {
+    soef.deleteOrphanedDevices('ip', adapter.config.devices);
+    checkIP(function () {
+        startFireTVs(function () {
             trackDevices();
         })
     });
@@ -533,4 +531,9 @@ function main() {
     adapter.subscribeStates('*');
     //adapter.subscribeObjects('*');
 }
+
+// linux:
+// is only version 31 // offline problem
+// apt-get install android-tools-adb
+
 
