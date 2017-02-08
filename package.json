@@ -1,6 +1,6 @@
 {
   "name": "iobroker.firetv",
-  "version": "0.0.18",
+  "version": "0.0.19",
   "description": "ioBroker Fire-TV Adapter",
   "author": {
     "name": "soef",
