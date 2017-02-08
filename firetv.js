@@ -8,7 +8,6 @@ var soef = require('soef'),
 
 soef.extendAll();
 
-//Client.prototype.parent = { shell: Client.prototype.shell };
 Client.prototype.shellEx = function(id, command, cb) {
     //this.parent.shell.call( this, id, command, function (err, stream) {
     this.shell(id, command, function (err, stream) {
@@ -61,8 +60,13 @@ var g_client;
 var isWin = process.platform === 'win32';
 
 var knownAppPathes = {
-    kodi: 'org.xbmc.kodi/.Splash',
-    netflix: 'com.netflix.ninja'
+    kodi:     'org.xbmc.kodi/.Splash',
+    xbmc:     'org.xbmc.kodi/.Splash',
+    netflix:  'com.netflix.ninja',
+    tvnow:    'de.cbc.tvnow.firetv/de.cbc.tvnowfiretv.MainActivity',
+    zdf:      'com.zdf.android.mediathek',
+    ard:      'com.daserste.daserste',
+    daserste: 'com.daserste.daserste'
 };
 
 var adapter = soef.Adapter (
@@ -85,6 +89,9 @@ var usedStateNames = {
     result:      { n: 'result',      val: '',    common: { write: false }},
     swapPower:   { n: 'swapPower',   val: false, common: { min: false, max: true}},
     on:          { n: 'on',          val: false, common: { min: false, max: true}},
+    state:       { n: 'state',       val: '',    common: { }},
+    shell:       { n: 'shell',       val: '',    common: { desc: 'send an adb shell command'}},
+    text:        { n: 'text',        val: '',    common: { desc: 'send "text" to the device'}},
     
     enter:       { n: 'keys.enter',  val: false, common: { min: false, max: true, code: adb.Keycode.KEYCODE_ENTER }},
     left:        { n: 'keys.left',   val: false, common: { min: false, max: true, code: adb.Keycode.KEYCODE_DPAD_LEFT}},
@@ -171,14 +178,18 @@ function trackDevices() {
     function set(device, val) {
         var ar = device.id.split(':');
         var ftv = fireTVs[normalizedName(ar[0])];
-        if (ftv) ftv.setOnline(val);
+        if (ftv) {
+            ftv.setOnline(val);
+            ftv.updatePowerState();
+            ftv.updateState();
+        }
     }
     new_g_client();
     g_client.trackDevices()
         .then(function (tracker) {
             tracker.on('add', function (device) {
                 set(device, true);
-                adapter.log.debug('Device ' + device.id + ' was plugged in');
+                adapter.log.debug('Device ' + device.id + ' + type=' + device.type + ' was plugged in');
             });
             tracker.on('remove', function (device) {
                 set(device, false);
@@ -208,18 +219,23 @@ var FireTV = function (entry) {
 FireTV.prototype.startClient = function(cb) {
     var self = this;
     this.client = adb.createClient({ bin: adapter.config.adbPath });
-    this.client.connect(this.id, 5555, function(err,id) {
+    this.client.connect(this.id, 5555, function(err, id) {
         if (err || !id) {
-            adapter.log.error('can not connect to ' + self.id + ' Error=' + err.message)
+            adapter.log.error('can not connect to ' + self.id + ' Error=' + err.message);
             return;
-        } else {
-            adapter.log.debug('Connected to ' + self.id + ' id=' + id);
         }
-    
-        // self.client.getProperties(self.id, function(err, properties) {
-        // });
-        
         self.client.id = id;
+        self.client.getState(id, function(err,state) {
+            adapter.log.debug('Connected to ' + self.id + ' id=' + id + ((!err && state) ? ' state=' + state : ""));
+            self.updateState(state);
+        });
+    
+        // self.client.getProperties(id, function(err, properties) {
+        // });
+        // self.client.getPackages(id, function(err, packages) {
+        //     if (err || !packages) return;
+        // });
+    
         self.client.version(function(err, version) {
             self.getAndroidVersion(function(androidVersion) {
                 self.getAPILevel(function (apiLevel) {
@@ -228,9 +244,7 @@ FireTV.prototype.startClient = function(cb) {
                 });
             });
         });
-        self.getPowerState(function(on) {
-            self.dev.setImmediately(usedStateNames.on.n, on);
-        });
+        self.updatePowerState();
     });
     cb && cb();
 };
@@ -273,7 +287,7 @@ FireTV.prototype.getAPILevel = function (cb) {
 };
 
 FireTV.prototype.setOnline = function (online) {
-    this.dev.setImmediately(usedStateNames.online.n, online ? true : false);
+    this.dev.setImmediately(usedStateNames.online.n, !!online);
 };
 
 
@@ -318,9 +332,20 @@ function lines2Object(lines) {
     return o;
 }
 
+
+FireTV.prototype.updatePowerState = function (cb) {
+    this.getPowerState(function (on) {
+        this.dev.setImmediately(usedStateNames.on.n, on);
+        cb && cb(on);
+    }.bind(this));
+};
+FireTV.prototype.updateState = function (state) {
+    this.dev.setImmediately(usedStateNames.state.n, state);
+};
+
+
 FireTV.prototype.getPowerState = function (cb) {
     this.shell('dumpsys power', function (ar) {
-    //this.shell('dumpsys input_method', function (ar) {
         // var value = ar.join('\r');
         // var RE_KEYVAL = /^\s*(\S*)=(\S)\r?$/gm;
         // var properties = {};
@@ -343,6 +368,12 @@ FireTV.prototype.getPowerState = function (cb) {
 FireTV.prototype.onStateChange = function (channel, state, val) {
     var self = this;
     switch(channel) {
+        case usedStateNames.shell.n:
+            this.shell(val);
+            break;
+        case usedStateNames.text.n:
+            this.shell('input text ' + val);
+            break;
         case 'keys':
             var code = usedStateNames[state].common.code;
             this.shell("input keyevent " + code);
@@ -417,16 +448,6 @@ function checkIP(cb) {
     });
 }
 
-// var fs;
-// function existFile(fn) {
-//     try {
-//         fs = fs || require('fs');
-//         var stats = fs.lstatSync(fn);
-//         return stats.isFile();
-//     } catch(e) {
-//     }
-//     return false;
-// }
 
 function checkPATH() {
     var fn, ar = process.env.PATH.split(path.delimiter);
@@ -517,7 +538,6 @@ function prepareDevices(cb) {
 
 function main() {
     
-    
     normalizeConfig();
     prepareDevices();
     
@@ -536,4 +556,13 @@ function main() {
 // is only version 31 // offline problem
 // apt-get install android-tools-adb
 
+// active Activity
+// adb shell "dumpsys activity | grep top-activity"
+// adb shell dumpsys window windows | grep -E 'mCurrentFocus|mFocusedApp'
 
+
+// adb shell dumpsys activity activities | grep mFocusedActivity
+
+// de.cbc.tvnow.firetv/de.cbc.tvnowfiretv.MainActivity
+
+// mFocusedApp=AppWindowToken{128d085 token=Token{3f1901fc ActivityRecord{d43c2ef u0 de.cbc.tvnow.firetv/de.cbc.tvnowfiretv.MainActivity t372}}}
