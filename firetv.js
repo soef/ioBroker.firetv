@@ -16,16 +16,19 @@ Client.prototype.shellEx = function(id, command, cb) {
             if (err || !stream) return cb && cb(err);
             var ar = output.toString().split('\r\n');
             ar.length--;
+            for (var i=ar.length-1; i > ar.length-10; i++) {
+                adapter.log.debug(ar[i]);
+            }
             cb && cb(0, ar);
         });
     })
 };
 
-Client.prototype.shell1 = function (id, command, cb) {
-    return this.shellEx(id, command, function (err, ar) {
-        cb && cb(err, (ar && ar.length) ? ar[0] : '');
-    });
-};
+// Client.prototype.shell1 = function (id, command, cb) {
+//     return this.shellEx(id, command, function (err, ar) {
+//         cb && cb(err, (ar && ar.length) ? ar[0] : '');
+//     });
+// };
 
 Client.prototype.getIP = function(id, cb) {
     var self = this;
@@ -64,6 +67,7 @@ var knownAppPathes = {
     xbmc:     'org.xbmc.kodi/.Splash',
     netflix:  'com.netflix.ninja',
     tvnow:    'de.cbc.tvnow.firetv/de.cbc.tvnowfiretv.MainActivity',
+    nowtv:    'de.cbc.tvnow.firetv/de.cbc.tvnowfiretv.MainActivity',
     zdf:      'com.zdf.android.mediathek',
     ard:      'com.daserste.daserste',
     daserste: 'com.daserste.daserste'
@@ -80,28 +84,35 @@ var adapter = soef.Adapter (
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 var usedStateNames = {
-    online:      { n: 'online',      val: false, common: { write: false, min: false, max: true }},
-    startApp:    { n: 'startApp',    val: '',    common: { desc: 'start an application e.g.: com.netflix.ninja/.MainActivity'}},
-    stopApp:     { n: 'stopApp',     val: '',    common: { desc: 'stops an application e.g.: com.netflix.ninja'}},
-    sendKeyCode: { n: 'sendKeyCode', val: 0,     common: { }},
-    reboot:      { n: 'reboot',      val: false, common: { min: false, max: true}},
-    screencap:   { n: 'screencap',   val: false, common: { min: false, max: true}},
-    result:      { n: 'result',      val: '',    common: { write: false }},
-    swapPower:   { n: 'swapPower',   val: false, common: { min: false, max: true}},
-    on:          { n: 'on',          val: false, common: { min: false, max: true}},
-    state:       { n: 'state',       val: '',    common: { }},
-    shell:       { n: 'shell',       val: '',    common: { desc: 'send an adb shell command'}},
-    text:        { n: 'text',        val: '',    common: { desc: 'send "text" to the device'}},
+    online:             { n: 'online',      val: false, common: { write: false, min: false, max: true }},
+    startApp:           { n: 'startApp',    val: '',    common: { desc: 'start an application e.g.: com.netflix.ninja/.MainActivity'}},
+    stopApp:            { n: 'stopApp',     val: '',    common: { desc: 'stops an application e.g.: com.netflix.ninja'}},
+    sendKeyCode:        { n: 'sendKeyCode', val: 0,     common: { }},
+    sendKeyCodeArray:   { n: '',            val: '',    common: { desc: 'Can be an array of keys and delays. e.g.: 4000, DOWN, 100, DOWN, DOWN, LEFT, ENTER, 5000, LEFT' }},
+    reboot:             { n: 'reboot',      val: false, common: { min: false, max: true}},
+    screencap:          { n: 'screencap',   val: false, common: { min: false, max: true}},
+    result:             { n: 'result',      val: '',    common: { write: false }},
+    swapPower:          { n: 'swapPower',   val: false, common: { min: false, max: true}},
+    on:                 { n: 'on',          val: false, common: { min: false, max: true}},
+    state:              { n: 'state',       val: '',    common: { }},
+    shell:              { n: 'shell',       val: '',    common: { desc: 'send an adb shell command'}},
+    text:               { n: 'text',        val: '',    common: { desc: 'send "text" to the device'}},
+    sendevent:          { n: 'sendevent',   val: '',    common: { } },
     
-    enter:       { n: 'keys.enter',  val: false, common: { min: false, max: true, code: adb.Keycode.KEYCODE_ENTER }},
-    left:        { n: 'keys.left',   val: false, common: { min: false, max: true, code: adb.Keycode.KEYCODE_DPAD_LEFT}},
-    right:       { n: 'keys.right',  val: false, common: { min: false, max: true, code: adb.Keycode.KEYCODE_DPAD_RIGHT}},
-    up:          { n: 'keys.up',     val: false, common: { min: false, max: true, code: adb.Keycode.KEYCODE_DPAD_UP}},
-    down:        { n: 'keys.down',   val: false, common: { min: false, max: true, code: adb.Keycode.KEYCODE_DPAD_DOWN}},
-    home:        { n: 'keys.home',   val: false, common: { min: false, max: true, code: adb.Keycode.KEYCODE_HOME}},
-    back:        { n: 'keys.back',   val: false, common: { min: false, max: true, code: adb.Keycode.KEYCODE_BACK}},
-    
+    enter:              { n: 'keys.enter',  val: false, common: { min: false, max: true, code: adb.Keycode.KEYCODE_ENTER }},
+    left:               { n: 'keys.left',   val: false, common: { min: false, max: true, code: adb.Keycode.KEYCODE_DPAD_LEFT }},
+    right:              { n: 'keys.right',  val: false, common: { min: false, max: true, code: adb.Keycode.KEYCODE_DPAD_RIGHT }},
+    up:                 { n: 'keys.up',     val: false, common: { min: false, max: true, code: adb.Keycode.KEYCODE_DPAD_UP }},
+    down:               { n: 'keys.down',   val: false, common: { min: false, max: true, code: adb.Keycode.KEYCODE_DPAD_DOWN }},
+    home:               { n: 'keys.home',   val: false, common: { min: false, max: true, code: adb.Keycode.KEYCODE_HOME }},
+    back:               { n: 'keys.back',   val: false, common: { min: false, max: true, code: adb.Keycode.KEYCODE_BACK }},
+    menu:               { n: 'keys.menu',   val: false, common: { min: false, max: true, code: adb.Keycode.KEYCODE_MENU }},
+    escape:             { n: 'keys.escape', val: false, common: { min: false, max: true, code: adb.Keycode.KEYCODE_ESCAPE}}
 };
+for (var i in usedStateNames) {
+    var o = usedStateNames[i];
+    if (!o.n) o.n = i;
+}
 
 
 function prepareStates() {
@@ -176,6 +187,7 @@ function new_g_client() {
 function trackDevices() {
     
     function set(device, val) {
+        if (!device || !device.id) return;
         var ar = device.id.split(':');
         var ftv = fireTVs[normalizedName(ar[0])];
         if (ftv) {
@@ -239,7 +251,6 @@ FireTV.prototype.startClient = function(cb) {
         self.client.version(function(err, version) {
             self.getAndroidVersion(function(androidVersion) {
                 self.getAPILevel(function (apiLevel) {
-                    //adapter.log.info(self.id + ": ADB version: " + version + ', Android Version: ' + androidVersion + ', API Level: ' + apiLevel);
                     soef.log("%s: ADB version: %s, Android Version: %s, API Level: %s", self.id, version, androidVersion, apiLevel);
                 });
             });
@@ -270,14 +281,6 @@ FireTV.prototype.close = function() {
     }
 };
 
-
-FireTV.prototype.shell1 /*Line*/ = function (cmd, cb) {
-    this.shell (cmd, function(ar) {
-        if (ar && ar.length) return cb && cb(ar[0]);
-        cb && cb('');
-    })
-};
-
 FireTV.prototype.getAndroidVersion = function (cb) {
     return this.shell1('getprop ro.build.version.release', cb);
 };
@@ -293,8 +296,8 @@ FireTV.prototype.setOnline = function (online) {
 
 FireTV.prototype.handleCallback = function (err, stream, cb) {
     if (err || !stream) {
-        adapter.log.error('ID: ' + this.id + ' Error=' + err.message)
-        if (err && err.message) this.dev.setImmediately(err.message);
+        adapter.log.error('ID: ' + this.id + ' Error=' + err.message);
+        if (err && err.message) this.dev.setImmediately('error', err.message);
         return cb && cb();
     }
     var self = this;
@@ -302,6 +305,11 @@ FireTV.prototype.handleCallback = function (err, stream, cb) {
         if (!err && output) {
             var ar = output.toString().split('\r\n');
             ar.length--;
+            // for (var i = Math.max(0, ar.length-10); i < ar.length; i++) {
+            //     var line = ar[i];
+            //     adapter.log.debug(line);
+            //     self.dev.setImmediately('result', line);
+            // }
             if (ar.length < 10) ar.forEach(function (line) {
                 adapter.log.debug(line);
                 self.dev.setImmediately('result', line);
@@ -311,7 +319,16 @@ FireTV.prototype.handleCallback = function (err, stream, cb) {
     });
 };
 
+
+FireTV.prototype.shell1 /*Line*/ = function (cmd, cb) {
+    this.shell (cmd, function(ar) {
+        if (ar && ar.length) return cb && cb(ar[0]);
+        cb && cb('');
+    })
+};
+
 FireTV.prototype.shell = function (command, cb) {
+    if (!this.client || !this.client.id) return cb && cb('client.id not set');
     this.client.shell(this.client.id, command, function(err, stream) {
         this.handleCallback(err, stream, cb);
     }.bind(this));
@@ -365,6 +382,48 @@ FireTV.prototype.getPowerState = function (cb) {
 };
 
 
+function getKeyValue(key) {
+    var val = ~~key;
+    if (val) return val;
+    key = key.replace(/"|'|\s/g, '').toUpperCase();
+    
+    if ((val = adb.Keycode['KEYCODE_DPAD_' + key]) !== undefined) return val;
+    val = adb.Keycode['KEYCODE_' + key];
+    return val;
+}
+
+
+FireTV.prototype.inputKeyevent = function (val) {
+    if (~~val !== 0) return this.shell("input keyevent " + val);
+    
+    // (4000, 'DOWN', 1000, 'DOWN', 100, 'DOWN', 'RIGHT', 'RIGHT', 'RIGHT', 'RIGHT', 'ENTER', 500, 'DOWN');
+    var ar = val.split(',');
+    var i = 0, delay = 0;
+    var self = this;
+    
+    function doIt() {
+        if (i < ar.length) {
+            var v = ar[i++];
+            var number = ~~v;
+            if (number) {
+                //adapter.log.debug('sendKeys: number, delay=' + v);
+                delay = number;
+                setTimeout(doIt, delay);
+            } else {
+                //adapter.log.debug('sendKeys: ' + v + ' (' + keys[v] + ')');
+                v = getKeyValue(v);
+                if (v) self.shell("input keyevent " + v, function(ar) {
+                    if (i <ar.length && ~~ar[i] > 0) doIt();
+                    else setTimeout(doIt, delay);
+                });
+            }
+        }
+    }
+    doIt();
+};
+
+
+
 FireTV.prototype.onStateChange = function (channel, state, val) {
     var self = this;
     switch(channel) {
@@ -372,6 +431,7 @@ FireTV.prototype.onStateChange = function (channel, state, val) {
             this.shell(val);
             break;
         case usedStateNames.text.n:
+            val = val.replace(/\s/g, '%s');
             this.shell('input text ' + val);
             break;
         case 'keys':
@@ -391,8 +451,11 @@ FireTV.prototype.onStateChange = function (channel, state, val) {
             var ar = appPath.split('/');
             this.shell('am force-stop ' + ar[0]);
             break;
+        case 'sendevent':
+        case usedStateNames.sendKeyCodeArray.n:
         case usedStateNames.sendKeyCode.n:
-            this.shell("input keyevent " + val);
+            this.inputKeyevent(val);
+            //this.shell("input keyevent " + val);
             break;
         case usedStateNames.reboot.n:
             this.client.reboot(this.client.id, this.handleCallback.bind(this));
@@ -566,3 +629,9 @@ function main() {
 // de.cbc.tvnow.firetv/de.cbc.tvnowfiretv.MainActivity
 
 // mFocusedApp=AppWindowToken{128d085 token=Token{3f1901fc ActivityRecord{d43c2ef u0 de.cbc.tvnow.firetv/de.cbc.tvnowfiretv.MainActivity t372}}}
+
+
+//https://androiddatahost.com/wp-content/uploads/minimal_adb_fastboot_v1.4.zip
+
+/****/
+
