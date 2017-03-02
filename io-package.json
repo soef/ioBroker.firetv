@@ -1,20 +1,26 @@
 {
   "common": {
     "name": "firetv",
-    "version": "0.0.20",
+    "version": "0.0.21",
     "title": "Fire TV",
     "desc": "Amazon Fire TV",
     "platform": "Javascript/Node.js",
+    "news": {
+      "0.0.21": {
+        "en": "send key codes by an array with delays",
+        "de": "Versenden von key codes in einem Array mit delays"
+      }
+    },
     "keywords": [
       "firetv",
       "fire tv",
       "fire-tv",
-	  "amazon fire tv"
+      "amazon fire tv"
     ],
     "mode": "daemon",
     "icon": "firetv.png",
     "extIcon": "https://raw.githubusercontent.com/soef/iobroker.firetv/master/admin/firetv.png",
-    "readme":  "https://github.com/soef/iobroker.firetv/blob/master/README.md",
+    "readme": "https://github.com/soef/iobroker.firetv/blob/master/README.md",
     "loglevel": "info",
     "type": "hardware",
     "enabled": true,
@@ -23,6 +29,7 @@
   "native": {
     "devices": []
   },
-    "objects": [
-    ]
+  "objects": [
+  ]
+
 }

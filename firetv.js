@@ -404,24 +404,36 @@ FireTV.prototype.inputKeyevent = function (val) {
     function doIt() {
         if (i < ar.length) {
             var v = ar[i++];
-            var number = ~~v;
-            if (number) {
-                //adapter.log.debug('sendKeys: number, delay=' + v);
-                delay = number;
-                setTimeout(doIt, delay);
-            } else {
-                //adapter.log.debug('sendKeys: ' + v + ' (' + keys[v] + ')');
-                v = getKeyValue(v);
-                if (v) self.shell("input keyevent " + v, function(ar) {
+            switch (typeof v) {
+                case 'number':
+                    var number = ~~v;
+                    if (number) {
+                        //adapter.log.debug('sendKeys: number, delay=' + v);
+                        delay = number;
+                        setTimeout (doIt, delay);
+                    }
+                    break;
+                case 'string':
+                    //adapter.log.debug('sendKeys: ' + v + ' (' + keys[v] + ')');
+                    v = getKeyValue(v);
+                    self.shell( (v ? "input keyevent " : "input text ") + v, function(ar) {
+                        if (i <ar.length && ~~ar[i] > 0) doIt();
+                        else setTimeout(doIt, delay);
+                    });
+                    break;
+                case 'function':
+                    try { v (); }
+                    catch (e) {
+                        //adapter.log.err('')
+                    }
                     if (i <ar.length && ~~ar[i] > 0) doIt();
                     else setTimeout(doIt, delay);
-                });
+                    break;
             }
         }
     }
     doIt();
 };
-
 
 
 FireTV.prototype.onStateChange = function (channel, state, val) {
@@ -614,24 +626,4 @@ function main() {
     adapter.subscribeStates('*');
     //adapter.subscribeObjects('*');
 }
-
-// linux:
-// is only version 31 // offline problem
-// apt-get install android-tools-adb
-
-// active Activity
-// adb shell "dumpsys activity | grep top-activity"
-// adb shell dumpsys window windows | grep -E 'mCurrentFocus|mFocusedApp'
-
-
-// adb shell dumpsys activity activities | grep mFocusedActivity
-
-// de.cbc.tvnow.firetv/de.cbc.tvnowfiretv.MainActivity
-
-// mFocusedApp=AppWindowToken{128d085 token=Token{3f1901fc ActivityRecord{d43c2ef u0 de.cbc.tvnow.firetv/de.cbc.tvnowfiretv.MainActivity t372}}}
-
-
-//https://androiddatahost.com/wp-content/uploads/minimal_adb_fastboot_v1.4.zip
-
-/****/
 
