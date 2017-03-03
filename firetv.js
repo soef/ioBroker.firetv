@@ -393,6 +393,8 @@ function getKeyValue(key) {
 }
 
 
+var reInputKey = /^[\"|\'](.*)[\"|\']$/;
+
 FireTV.prototype.inputKeyevent = function (val) {
     if (~~val !== 0) return this.shell("input keyevent " + val);
     
@@ -403,7 +405,7 @@ FireTV.prototype.inputKeyevent = function (val) {
     
     function doIt() {
         if (i < ar.length) {
-            var v = ar[i++];
+            var v = ar[i++].trim();
             switch (typeof v) {
                 case 'number':
                     var number = ~~v;
@@ -415,8 +417,13 @@ FireTV.prototype.inputKeyevent = function (val) {
                     break;
                 case 'string':
                     //adapter.log.debug('sendKeys: ' + v + ' (' + keys[v] + ')');
-                    var key = getKeyValue(v);
-                    self.shell( (key ? "input keyevent "+key : "input text "+v), function(lines) {
+                    var key;
+                    if (reInputKey.test(v)) {
+                        key = "input text " + v.replace(reInputKey, '$1');
+                    } else {
+                        key = "input keyevent " + getKeyValue(v);
+                    }
+                    self.shell( key, function(lines) {
                         if (i <ar.length && ~~ar[i] > 0) doIt();
                         else setTimeout(doIt, delay);
                     });
