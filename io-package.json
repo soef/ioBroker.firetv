@@ -1,12 +1,12 @@
 {
   "common": {
     "name": "firetv",
-    "version": "0.0.22",
+    "version": "0.0.23",
     "title": "Fire TV",
     "desc": "Amazon Fire TV",
     "platform": "Javascript/Node.js",
     "news": {
-      "0.0.22": {
+      "0.0.23": {
         "en": "fix text input",
         "de": "Texteingabe gefixed"
       },
