@@ -1,11 +1,15 @@
 {
   "common": {
     "name": "firetv",
-    "version": "0.0.21",
+    "version": "0.0.22",
     "title": "Fire TV",
     "desc": "Amazon Fire TV",
     "platform": "Javascript/Node.js",
     "news": {
+      "0.0.22": {
+        "en": "fix text input",
+        "de": "Texteingabe gefixed"
+      },
       "0.0.21": {
         "en": "send key codes by an array with delays",
         "de": "Versenden von key codes in einem Array mit delays"

@@ -415,8 +415,8 @@ FireTV.prototype.inputKeyevent = function (val) {
                     break;
                 case 'string':
                     //adapter.log.debug('sendKeys: ' + v + ' (' + keys[v] + ')');
-                    v = getKeyValue(v);
-                    self.shell( (v ? "input keyevent " : "input text ") + v, function(ar) {
+                    var key = getKeyValue(v);
+                    self.shell( (key ? "input keyevent "+key : "input text "+v), function(ar) {
                         if (i <ar.length && ~~ar[i] > 0) doIt();
                         else setTimeout(doIt, delay);
                     });
@@ -626,4 +626,3 @@ function main() {
     adapter.subscribeStates('*');
     //adapter.subscribeObjects('*');
 }
-
