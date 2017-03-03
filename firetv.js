@@ -73,6 +73,9 @@ var knownAppPathes = {
     daserste: 'com.daserste.daserste'
 };
 
+//am start -n com.netflix.ninja
+//am start -W -S -n com.netflix.ninja/.MainActivityam
+
 var adapter = soef.Adapter (
     main,
     onStateChange,
@@ -400,42 +403,30 @@ FireTV.prototype.inputKeyevent = function (val) {
     
     // (4000, 'DOWN', 1000, 'DOWN', 100, 'DOWN', 'RIGHT', 'RIGHT', 'RIGHT', 'RIGHT', 'ENTER', 500, 'DOWN');
     var ar = val.split(',');
-    var i = 0, delay = 0;
+    var number, i = 0, delay = 0;
     var self = this;
     
     function doIt() {
         if (i < ar.length) {
             var v = ar[i++].trim();
-            switch (typeof v) {
-                case 'number':
-                    var number = ~~v;
-                    if (number) {
-                        //adapter.log.debug('sendKeys: number, delay=' + v);
-                        delay = number;
-                        setTimeout (doIt, delay);
-                    }
-                    break;
-                case 'string':
-                    //adapter.log.debug('sendKeys: ' + v + ' (' + keys[v] + ')');
-                    var key;
-                    if (reInputKey.test(v)) {
-                        key = "input text " + v.replace(reInputKey, '$1');
-                    } else {
-                        key = "input keyevent " + getKeyValue(v);
-                    }
-                    self.shell( key, function(lines) {
-                        if (i <ar.length && ~~ar[i] > 0) doIt();
-                        else setTimeout(doIt, delay);
-                    });
-                    break;
-                case 'function':
-                    try { v (); }
-                    catch (e) {
-                        //adapter.log.err('')
-                    }
+            if ((number = ~~v) !== undefined) {
+                //adapter.log.debug('sendKeys: number, delay=' + v);
+                delay = number;
+                setTimeout (doIt, delay);
+            } else {
+                //adapter.log.debug('sendKeys: ' + v + ' (' + keys[v] + ')');
+                var key;
+                if (reInputKey.test(v)) {
+                    key = "input text " + v.replace(reInputKey, '$1');
+                } else if (v === 'callback') {
+                    self.dev.setImmediately('result', 'callback');
+                } else {
+                    key = "input keyevent " + getKeyValue(v);
+                }
+                self.shell( key, function(lines) {
                     if (i <ar.length && ~~ar[i] > 0) doIt();
                     else setTimeout(doIt, delay);
-                    break;
+                });
             }
         }
     }
