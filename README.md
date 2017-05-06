@@ -11,16 +11,32 @@
 [![Build Status](https://secure.travis-ci.org/soef/iobroker.firetv.svg?branch=master)](https://travis-ci.org/soef/iobroker.firetv)
 -->
 
+With this adapter you can control some funtions of your Fire TV or Fire TV Stick.
+E.g.: 
+- On /Off
+- Send key events
+- Send text strings to input fields
+- Start / Stop apps
+- reboot
+- excute shell commands
+
+#### Some Infos
+This adapter uses functions of the "Android Debug Bridge", known as "adb". Adb is part of the Android Developer SDK. Because Fire TV has an Android operating system, it can be controlled by adb.
+
 #### Requirements
 
-The executable file **adb** must be included in the PATH. Or the path must be entered in the configuration.
-You can install the complete Android SDK or a minimal version of adb. Search at google for
+To use this adapter you have to install at least the adb packet of the Anroid SDK. In order not to install the complete Android SDK, you should install the 
+- *Minimal ADB and Fastboot*
 
-- *Minimal ADB and Fastboot* or
-- *adbLink* 
+Search on google (Minimal ADB and Fastboot) for the latest download link.
+
+Alternatively, you can use *adbLink* 
 
 #### Installation
 Execute the following command in the iobroker root directory (e.g. in /opt/iobroker)
 ```
 npm install iobroker.firetv 
 ```
+
+
+

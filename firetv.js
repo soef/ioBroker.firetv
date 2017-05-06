@@ -409,7 +409,7 @@ FireTV.prototype.inputKeyevent = function (val) {
     function doIt() {
         if (i < ar.length) {
             var v = ar[i++].trim();
-            if ((number = ~~v) !== undefined) {
+            if ((number = ~~v)) {
                 //adapter.log.debug('sendKeys: number, delay=' + v);
                 delay = number;
                 setTimeout (doIt, delay);
