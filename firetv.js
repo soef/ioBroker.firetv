@@ -102,6 +102,8 @@ var usedStateNames = {
     text:               { n: 'text',        val: '',    common: { desc: 'send "text" to the device'}},
     sendevent:          { n: 'sendevent',   val: '',    common: { } },
     
+    //framebuffer:        { n: 'framebuffer', val: '',    common: { } },
+    
     enter:              { n: 'keys.enter',  val: false, common: { min: false, max: true, code: adb.Keycode.KEYCODE_ENTER }},
     left:               { n: 'keys.left',   val: false, common: { min: false, max: true, code: adb.Keycode.KEYCODE_DPAD_LEFT }},
     right:              { n: 'keys.right',  val: false, common: { min: false, max: true, code: adb.Keycode.KEYCODE_DPAD_RIGHT }},
@@ -171,7 +173,8 @@ function closeAllFireTVs() {
     for (var i in fireTVs) {
         fireTVs[i].close();
         delete fireTVs[i];
-    };
+    }
+    
 }
 
 function onUnload(callback) {
@@ -279,6 +282,9 @@ FireTV.prototype.close = function() {
     if (this.client && this.client.id) {
         this.client.disconnect(this.client.id).catch(function (err) {
             adapter.log.debug('Something went wrong:' + err.message)
+        });
+        this.client.kill(function(err) {
+             if (err) adapter.log('error killing adb server: ' + err.message);
         });
         this.client = undefined;
     }
@@ -390,9 +396,29 @@ function getKeyValue(key) {
     if (val) return val;
     key = key.replace(/"|'|\s/g, '').toUpperCase();
     
+    if ((val = adb.Keycode[key]) !== undefined) return val;
     if ((val = adb.Keycode['KEYCODE_DPAD_' + key]) !== undefined) return val;
     val = adb.Keycode['KEYCODE_' + key];
     return val;
+}
+
+
+function buildInputEvent(key, longpress) {
+    key = getKeyValue(key);
+    var SEP = ' && ';
+    //var SEP = '\n';
+    var eventNo = 7;
+    var cmd =
+        //"sendevent /dev/input/event" + eventNo + " 4 4 0007004f" + SEP +
+        "sendevent /dev/input/event" + eventNo + " 1 " + key + " 1" + SEP +
+        "sendevent /dev/input/event" + eventNo + " 0 0 0" + SEP;
+    if (longpress) cmd += 'sleep 1';
+    cmd +=
+        //"sendevent /dev/input/event" + eventNo + " 4 4 0007004f" + SEP +
+        "sendevent /dev/input/event" + eventNo + " 1 " + key + " 0" + SEP +
+        "sendevent /dev/input/event" + eventNo + " 0 0 0";
+    
+    return cmd;
 }
 
 
@@ -403,11 +429,13 @@ FireTV.prototype.inputKeyevent = function (val) {
     
     // (4000, 'DOWN', 1000, 'DOWN', 100, 'DOWN', 'RIGHT', 'RIGHT', 'RIGHT', 'RIGHT', 'ENTER', 500, 'DOWN');
     var ar = val.split(',');
+    if (ar.length <= 1) ar = val.split(' ');
     var number, i = 0, delay = 0;
     var self = this;
+    //self.stopKeyevents
     
     function doIt() {
-        if (i < ar.length) {
+        if (i < ar.length && !self.stopKeyevents) {
             var v = ar[i++].trim();
             if ((number = ~~v)) {
                 //adapter.log.debug('sendKeys: number, delay=' + v);
@@ -417,32 +445,51 @@ FireTV.prototype.inputKeyevent = function (val) {
                 //adapter.log.debug('sendKeys: ' + v + ' (' + keys[v] + ')');
                 var key;
                 if (reInputKey.test(v)) {
-                    key = "input text " + v.replace(reInputKey, '$1');
+                    
+                    key = "input text " + normalizeInputText(v.replace(reInputKey, '$1'));
                 } else if (v === 'callback') {
                     self.dev.setImmediately('result', 'callback');
                 } else {
                     key = "input keyevent " + getKeyValue(v);
                 }
+                //console.log('Sending: ' + key + ' i=' + i);
                 self.shell( key, function(lines) {
                     if (i <ar.length && ~~ar[i] > 0) doIt();
                     else setTimeout(doIt, delay);
                 });
             }
         }
+        if (self.stopKeyevents) self.stopKeyevents--;
     }
     doIt();
 };
 
 
+FireTV.prototype.frameBuffer = function (val) {
+    this.client.framebuffer(this.client.id, 'raw', function(err, stream) {
+        if (err || !stream) return;
+        adb.util.readAll(stream, function(err, output) {
+            err = err;
+        });
+    });
+};
+
+function normalizeInputText(t) {
+    return t.toString().replace(/\s/g, '%s');
+}
+
 FireTV.prototype.onStateChange = function (channel, state, val) {
     var self = this;
     switch(channel) {
+        case 'framebuffer':
+            this.frameBuffer(val);
+            break;
         case usedStateNames.shell.n:
             this.shell(val);
             break;
         case usedStateNames.text.n:
             val = val.replace(/\s/g, '%s');
-            this.shell('input text ' + val);
+            this.shell('input text ' + normalizeInputText(val));
             break;
         case 'keys':
             var code = usedStateNames[state].common.code;
@@ -479,7 +526,7 @@ FireTV.prototype.onStateChange = function (channel, state, val) {
         case 'power':
         case usedStateNames.on.n:
             this.getPowerState(function(on) {
-                if (val != on) this.shell("input keyevent " + adb.Keycode.KEYCODE_POWER);
+                if (val !== on) this.shell("input keyevent " + adb.Keycode.KEYCODE_POWER);
             }.bind(this));
             break;
     }
@@ -624,3 +671,4 @@ function main() {
     adapter.subscribeStates('*');
     //adapter.subscribeObjects('*');
 }
+

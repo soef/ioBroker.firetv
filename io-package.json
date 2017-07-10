@@ -1,11 +1,15 @@
 {
   "common": {
     "name": "firetv",
-    "version": "0.0.27",
+    "version": "0.0.28",
     "title": "Fire TV",
     "desc": "Amazon Fire TV",
     "platform": "Javascript/Node.js",
     "news": {
+      "0.0.28": {
+        "en": "changed adapter type to media",
+        "de": "Adapter type nach media geändert"
+      },
       "0.0.27": {
         "en": "Readme extended",
         "de": "Readme erweitert"
