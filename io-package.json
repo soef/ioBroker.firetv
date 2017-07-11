@@ -1,12 +1,12 @@
 {
   "common": {
     "name": "firetv",
-    "version": "0.0.28",
+    "version": "0.0.29",
     "title": "Fire TV",
     "desc": "Amazon Fire TV",
     "platform": "Javascript/Node.js",
     "news": {
-      "0.0.28": {
+      "0.0.29": {
         "en": "changed adapter type to media",
         "de": "Adapter type nach media geändert"
       },
@@ -34,7 +34,7 @@
     "extIcon": "https://raw.githubusercontent.com/soef/iobroker.firetv/master/admin/firetv.png",
     "readme": "https://github.com/soef/iobroker.firetv/blob/master/README.md",
     "loglevel": "info",
-    "type": "hardware",
+    "type": "media",
     "enabled": true,
     "messagebox": true
   },
