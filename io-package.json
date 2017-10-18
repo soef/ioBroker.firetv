@@ -1,55 +1,59 @@
 {
-  "common": {
-    "name": "firetv",
-    "version": "0.0.31",
-    "title": "Fire TV",
-    "desc": "Amazon Fire TV",
-    "platform": "Javascript/Node.js",
-    "news": {
-      "0.0.31": {
-        "en": "node 0.12 removed from testing",
-        "de": "node 0.12 auf testing entfernt"
-      },
-      "0.0.30": {
-        "en": "Enhance CI testing",
-        "de": "CI testing erweitert"
-      },
-      "0.0.29": {
-        "en": "changed adapter type to media",
-        "de": "Adapter type nach media geändert"
-      },
-      "0.0.27": {
-        "en": "Readme extended",
-        "de": "Readme erweitert"
-      },
-      "0.0.26": {
-        "en": "fix text input",
-        "de": "Texteingabe gefixed"
-      },
-      "0.0.21": {
-        "en": "send key codes by an array with delays",
-        "de": "Versenden von key codes in einem Array mit delays"
-      }
+    "common": {
+        "name": "firetv",
+        "version": "0.0.31",
+        "title": "Fire TV",
+        "desc": "Amazon Fire TV",
+        "platform": "Javascript/Node.js",
+        "news": {
+            "0.0.31": {
+                "en": "node 0.12 removed from testing",
+                "de": "node 0.12 auf testing entfernt"
+            },
+            "0.0.30": {
+                "en": "Enhance CI testing",
+                "de": "CI testing erweitert"
+            },
+            "0.0.29": {
+                "en": "changed adapter type to media",
+                "de": "Adapter type nach media geändert"
+            },
+            "0.0.27": {
+                "en": "Readme extended",
+                "de": "Readme erweitert"
+            },
+            "0.0.26": {
+                "en": "fix text input",
+                "de": "Texteingabe gefixed"
+            },
+            "0.0.21": {
+                "en": "send key codes by an array with delays",
+                "de": "Versenden von key codes in einem Array mit delays"
+            }
+        },
+        "keywords": [
+            "firetv",
+            "fire tv",
+            "fire-tv",
+            "amazon fire tv"
+        ],
+        "mode": "daemon",
+        "icon": "firetv.png",
+        "extIcon": "https://raw.githubusercontent.com/soef/iobroker.firetv/master/admin/firetv.png",
+        "readme": "https://github.com/soef/iobroker.firetv/blob/master/README.md",
+        "loglevel": "info",
+        "type": "multimedia",
+        "enabled": true,
+        "messagebox": true,
+        "authors": [
+            {
+                "name": "soef",
+                "email": "soef@gmx.net"
+            }
+        ]
     },
-    "keywords": [
-      "firetv",
-      "fire tv",
-      "fire-tv",
-      "amazon fire tv"
-    ],
-    "mode": "daemon",
-    "icon": "firetv.png",
-    "extIcon": "https://raw.githubusercontent.com/soef/iobroker.firetv/master/admin/firetv.png",
-    "readme": "https://github.com/soef/iobroker.firetv/blob/master/README.md",
-    "loglevel": "info",
-    "type": "media",
-    "enabled": true,
-    "messagebox": true
-  },
-  "native": {
-    "devices": []
-  },
-  "objects": [
-  ]
-
+    "native": {
+        "devices": []
+    },
+    "objects": []
 }
