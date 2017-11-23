@@ -3,7 +3,11 @@
         "name": "firetv",
         "version": "0.0.32",
         "title": "Fire TV",
-        "desc": "Amazon Fire TV",
+        "desc":                     {
+            "en": "control Amazon Fire TV",
+            "de": "steuert Amazon Fire TV",
+            "ru": "Amazon Fire TV"
+        },
         "platform": "Javascript/Node.js",
         "news": {
             "0.0.32": {
