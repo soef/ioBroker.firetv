@@ -1,7 +1,7 @@
 {
     "common": {
         "name": "firetv",
-        "version": "0.0.32",
+        "version": "0.0.33",
         "title": "Fire TV",
         "desc":                     {
             "en": "control Amazon Fire TV",
@@ -10,6 +10,10 @@
         },
         "platform": "Javascript/Node.js",
         "news": {
+            "0.0.33": {
+                "en": "Update utils.js and usage, CI Testing and deps (Apollon77)",
+                "de": "utils.js und Benutzung erneuert, CI Testing (Apollon77)"
+            },
             "0.0.32": {
                 "en": "update basic package-file testing (Apollon77)",
                 "de": "Erweiterung der Tests (Apollon77)"
