@@ -3,7 +3,7 @@
 var soef = require('soef'),
     adb = require('adbkit'),
     path = require('path'),
-    Client = require('./node_modules/adbkit/lib/adb/client'),
+    Client = require('/opt/iobroker/node_modules/adbkit/lib/adb/client'),
     Mdns = require('mdns-discovery');
 
 soef.extendAll();
