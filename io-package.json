@@ -8,6 +8,7 @@
             "de": "steuert Amazon Fire TV",
             "ru": "Amazon Fire TV"
         },
+        "license": "MIT",
         "platform": "Javascript/Node.js",
         "news": {
             "0.0.33": {
