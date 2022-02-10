@@ -32,7 +32,8 @@
     "bluebird": "^3.4.7",
     "mdns-discovery": "^0.1.9",
     "path": "^0.12.7",
-    "soef": "^0.1.39"
+    "soef": "^0.1.39",
+    "@iobroker/adapter-core": "^1.0.3"
   },
   "devDependencies": {
     "mocha": "^4.1.0",
